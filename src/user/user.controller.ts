@@ -1,73 +1,35 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
-import { get } from 'http';
-import path from 'path';
-import { NotFoundError } from 'rxjs';
-
-class UserDataModel {
-	constructor(
-		public id: Number,
-		public name: String
-	) { }
-}
-
-class CreateUserDto {
-	name!: String;
-}
-
-class UpdateUserDto {
-	name?: String;
-}
-
-let database: Array<UserDataModel> = [
-	new UserDataModel(1, "Jhon Doe"),
-	new UserDataModel(2, "Jesus Morales")
-];
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
+import { CreateUserDto } from './dto/createUser.dto';
+import { UpdateUserDto } from './dto/updateUser.dto';
+import { User } from './model/User.model';
+import { UserService } from './user.service';
 
 @Controller('user')
 export class UserController {
+	constructor(private readonly userService: UserService) { }
+
 	@Get()
-	getUsers(): Array<UserDataModel> {
-		return database
+	getUsers(@Query('name') name: String = ''): Array<User> {
+		return this.userService.findAllUsers(name)
 	}
 
 	@Get(':id')
-	getUserById(@Param('id', ParseIntPipe) id: Number) {
-		return database.find((item) => item.id == id);
+	getUserById(@Param('id', ParseIntPipe) id: Number): User | null {
+		return this.userService.findUserById(id);
 	}
 
 	@Post()
-	createUser(@Body() body: CreateUserDto) {
-		const newUser: UserDataModel = new UserDataModel(database.length + 1, body.name);
-
-		database.push(newUser);
-		return newUser
+	createUser(@Body() body: CreateUserDto): User | null {
+		return this.userService.createUser(body)
 	}
 
 	@Put(':id')
-	updateUser(@Param('id', ParseIntPipe) id: Number, @Body() body: UpdateUserDto) {
-		const userIndex = database.findIndex((item) => item.id === id);
-		if (userIndex === -1) {
-			throw new NotFoundException(`El usuario con ID ${id} no existe`);
-		}
-
-		if (body.name) {
-			database[userIndex].name = body.name;
-		}
-		return database[userIndex];
+	updateUser(@Param('id', ParseIntPipe) id: Number, @Body() body: UpdateUserDto): User | null {
+		return this.userService.updateUser(id, body)
 	}
 
 	@Delete(':id')
-	deleteUser(@Param('id', ParseIntPipe) id: Number){
-    const userIndex = database.findIndex((item) => item.id === id);
-    if (userIndex === -1) {
-      throw new NotFoundException(`El usuario con ID ${id} no existe`);
-    }
-
-    const deletedUser = database[userIndex];
-    database.splice(userIndex, 1);
-    return {
-      message: `Usuario con ID ${id} eliminado correctamente`,
-      user: deletedUser,
-    };
+	deleteUser(@Param('id', ParseIntPipe) id: Number): User | null {
+		return this.userService.deleteUser(id)
 	}
 }
